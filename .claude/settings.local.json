@@ -5,7 +5,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git config:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "mcp__shadcn-ui__list_components",
+      "mcp__shadcn-ui__get_component",
+      "mcp__shadcn-ui__list_blocks"
     ],
     "deny": []
   }
