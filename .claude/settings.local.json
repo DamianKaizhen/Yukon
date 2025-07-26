@@ -8,7 +8,19 @@
       "Bash(git push:*)",
       "mcp__shadcn-ui__list_components",
       "mcp__shadcn-ui__get_component",
-      "mcp__shadcn-ui__list_blocks"
+      "mcp__shadcn-ui__list_blocks",
+      "Bash(mkdir:*)",
+      "Bash(docker-compose config:*)",
+      "Bash(make:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker run:*)",
+      "Bash(docker exec:*)",
+      "Bash(ls:*)",
+      "Bash(chmod:*)",
+      "Bash(cp:*)",
+      "Bash(touch:*)",
+      "Bash(cut:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   }

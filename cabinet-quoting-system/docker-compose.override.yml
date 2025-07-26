@@ -1,0 +1,144 @@
+# Cabinet Quoting System - Development Override Configuration
+# This file automatically merges with docker-compose.yml in development
+# Enables hot reload, debugging, and development conveniences
+
+services:
+  # Frontend Development Configuration
+  frontend:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3002
+      - CHOKIDAR_USEPOLLING=true  # For file watching in containers
+    volumes:
+      - ./frontend:/app:cached
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+      - "3100:3100"  # Next.js dev server websocket
+    command: npm run dev
+    # Remove security restrictions for development
+    read_only: false
+    security_opt: []
+    cap_drop: []
+    cap_add: []
+    tmpfs: []
+
+  # Admin Interface Development Configuration
+  admin-interface:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3002
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./admin-interface:/app:cached
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3001:3001"
+      - "3101:3101"  # Next.js dev server websocket
+    command: npm run dev
+    # Remove security restrictions for development
+    read_only: false
+    security_opt: []
+    cap_drop: []
+    cap_add: []
+    tmpfs: []
+
+  # Backend Development Configuration
+  backend:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://cabinet_user:cabinet_dev_password@database:5432/cabinet_quoting_dev
+      - JWT_SECRET=dev-jwt-secret-not-for-production
+      - API_PORT=3002
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001
+    volumes:
+      - ./backend:/app:cached
+      - /app/node_modules
+      - backend-dev-uploads:/app/uploads:rw
+    ports:
+      - "3002:3002"
+      - "9229:9229"  # Node.js debugger port
+    command: npm run dev
+    # Remove security restrictions for development
+    read_only: false
+    security_opt: []
+    cap_drop: []
+    cap_add: []
+    tmpfs: []
+
+  # Quote Engine Development Configuration
+  quote-engine:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+      - QUOTE_ENGINE_PORT=3003
+      - BACKEND_API_URL=http://backend:3002
+      - PDF_STORAGE_PATH=/app/pdf-storage
+    volumes:
+      - ./quote-engine:/app:cached
+      - /app/node_modules
+      - quote-dev-pdfs:/app/pdf-storage:rw
+    ports:
+      - "3003:3003"
+      - "9230:9230"  # Node.js debugger port
+    command: npm run dev
+    # Remove security restrictions for development
+    read_only: false
+    security_opt: []
+    cap_drop: []
+    cap_add: []
+    tmpfs: []
+
+  # Database Development Configuration
+  database:
+    environment:
+      - POSTGRES_DB=cabinet_quoting_dev
+      - POSTGRES_USER=cabinet_user
+      - POSTGRES_PASSWORD=cabinet_dev_password
+      - POSTGRES_INITDB_ARGS=--auth-host=md5  # Less secure but easier for dev
+    ports:
+      - "5432:5432"  # Expose for direct access
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data:rw
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+      - ./database/dev-seed:/docker-entrypoint-initdb.d/dev-data:ro
+    # Remove security restrictions for development
+    security_opt: []
+    cap_drop: []
+    cap_add: []
+
+  # Nginx Development Configuration
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-dev-logs:/var/log/nginx:rw
+    # Remove security restrictions for development
+    read_only: false
+    security_opt: []
+    cap_drop: []
+    cap_add: []
+    tmpfs: []
+
+# Additional development volumes
+volumes:
+  postgres-dev-data:
+    driver: local
+  backend-dev-uploads:
+    driver: local
+  quote-dev-pdfs:
+    driver: local
+  nginx-dev-logs:
+    driver: local
