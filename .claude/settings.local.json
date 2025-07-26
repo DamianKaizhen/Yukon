@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp add github:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": []
+  }
+}
