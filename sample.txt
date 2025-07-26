@@ -1,5 +1,0 @@
-This is a sample text file created for demonstration purposes.
-
-It contains some basic text content to show how files can be created and pushed to a git repository.
-
-Created on: 2025-07-26
