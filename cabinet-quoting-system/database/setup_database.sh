@@ -1,13 +1,22 @@
 #!/bin/bash
-# Database setup script for Cabinet Quoting System
-# This script creates the database and runs all migrations
+# Cabinet Quoting System - Database Setup Script
+# ===============================================
+# Automated setup script for the complete database environment
+# Author: Database Architect Agent
+# Created: 2025-07-27
+
+set -e  # Exit on any error
 
 # Configuration
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
-DB_NAME="${DB_NAME:-cabinet_system}"
+DB_NAME="${DB_NAME:-cabinet_quoting}"
 DB_USER="${DB_USER:-postgres}"
 DB_PASSWORD="${DB_PASSWORD:-password}"
+CSV_FILE="${CSV_FILE:-../PricesLists cabinets.csv}"
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -72,51 +81,36 @@ echo ""
 echo -e "${BLUE}Running database migrations...${NC}"
 echo "=============================="
 
-MIGRATIONS_DIR="/home/damian/yukon-projects/cabinet-quoting-system/database/migrations"
+MIGRATIONS_DIR="$SCRIPT_DIR/migrations"
 
 # Execute migrations in order
-execute_sql_file "$MIGRATIONS_DIR/001_create_schema.sql" "Creating database schema"
+execute_sql_file "$MIGRATIONS_DIR/001_initial_schema.sql" "Creating database schema"
+execute_sql_file "$MIGRATIONS_DIR/002_import_cabinet_types.sql" "Importing cabinet types"
 
 # Step 3: Import CSV data (optional)
 echo ""
 read -p "Do you want to import the CSV data? (Y/n): " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-    # First, copy the CSV to a temporary location and prepare it
-    CSV_FILE="/home/damian/yukon-projects/PricesLists cabinets.csv"
-    TEMP_CSV="/tmp/cabinet_prices.csv"
-    
     if [ -f "$CSV_FILE" ]; then
-        echo -e "${YELLOW}Preparing CSV data...${NC}"
-        cp "$CSV_FILE" "$TEMP_CSV"
+        echo -e "${YELLOW}Installing Python dependencies...${NC}"
+        cd "$SCRIPT_DIR/scripts"
+        pip3 install -r requirements.txt > /dev/null 2>&1
         
-        # Create and populate the temporary import table
-        psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME <<EOF
-SET search_path TO cabinet_system, public;
-
--- Create temporary import table
-CREATE TEMP TABLE csv_import (
-    color_option VARCHAR(200),
-    item_code VARCHAR(100),
-    description TEXT,
-    price_particleboard VARCHAR(50),
-    price_plywood VARCHAR(50),
-    concatenated VARCHAR(300),
-    price_uv_birch VARCHAR(50),
-    price_white_plywood VARCHAR(50)
-);
-
--- Import CSV data
-\COPY csv_import FROM '$TEMP_CSV' DELIMITER ',' CSV HEADER;
-EOF
+        echo -e "${YELLOW}Importing CSV data...${NC}"
+        DB_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
+        python3 import_cabinet_csv.py --csv-file "$CSV_FILE" --db-url "$DB_URL"
         
-        # Run the import migration
-        execute_sql_file "$MIGRATIONS_DIR/002_import_csv_data.sql" "Importing CSV data"
-        
-        # Clean up
-        rm -f "$TEMP_CSV"
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓ CSV data imported successfully${NC}"
+        else
+            echo -e "${RED}✗ Error importing CSV data${NC}"
+            exit 1
+        fi
     else
         echo -e "${RED}CSV file not found at: $CSV_FILE${NC}"
+        echo "You can import data later using:"
+        echo "python3 scripts/import_cabinet_csv.py --csv-file \"path/to/cabinets.csv\""
     fi
 fi
 
@@ -125,13 +119,30 @@ echo ""
 read -p "Do you want to load sample data (customers, quotes)? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    SEED_DIR="/home/damian/yukon-projects/cabinet-quoting-system/database/seed-data"
+    SEED_DIR="$SCRIPT_DIR/seeds"
     
-    execute_sql_file "$SEED_DIR/02_sample_customers.sql" "Loading sample customers"
-    execute_sql_file "$SEED_DIR/03_sample_quotes.sql" "Creating sample quotes"
+    execute_sql_file "$SEED_DIR/001_sample_customers.sql" "Loading sample customers"
+    execute_sql_file "$SEED_DIR/002_sample_quotes.sql" "Creating sample quotes"
 fi
 
-# Step 5: Display summary
+# Step 5: Run tests (optional)
+echo ""
+read -p "Do you want to run database tests? (Y/n): " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+    echo -e "${YELLOW}Running database tests...${NC}"
+    cd "$SCRIPT_DIR/scripts"
+    DB_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
+    python3 test_database.py --db-url "$DB_URL" --verbose
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ All database tests passed${NC}"
+    else
+        echo -e "${YELLOW}⚠ Some tests failed - review output above${NC}"
+    fi
+fi
+
+# Step 6: Display summary
 echo ""
 echo -e "${BLUE}Database Setup Summary${NC}"
 echo "======================"
@@ -173,10 +184,26 @@ EOF
 echo ""
 echo -e "${GREEN}Database setup completed successfully!${NC}"
 echo ""
+echo "Connection Details:"
+echo "  Host: $DB_HOST:$DB_PORT"
+echo "  Database: $DB_NAME" 
+echo "  User: $DB_USER"
+echo "  Connection URL: postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
+echo ""
+echo "Default Admin User:"
+echo "  Email: admin@yudezign.com"
+echo "  Password: admin123 (CHANGE IN PRODUCTION!)"
+echo ""
 echo "Next steps:"
 echo "1. Review the schema documentation in DATABASE_SCHEMA.md"
-echo "2. Test the database with sample queries"
+echo "2. Change the default admin password"
 echo "3. Configure your application to connect to the database"
+echo "4. Start building your Cabinet Quoting System application"
+echo ""
+echo "Useful commands:"
+echo "  Connect to database: psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME"
+echo "  Run tests: cd scripts && python3 test_database.py"
+echo "  Import more data: cd scripts && python3 import_cabinet_csv.py --csv-file \"file.csv\""
 echo ""
 
 # Cleanup

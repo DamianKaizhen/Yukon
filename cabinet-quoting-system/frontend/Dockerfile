@@ -15,13 +15,13 @@ WORKDIR /app
 
 # Dependencies stage
 FROM base AS deps
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
+COPY package.json ./
+RUN npm install --omit=dev && npm cache clean --force
 
 # Development stage
 FROM base AS development
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 COPY . .
 USER nextjs
 EXPOSE 3000
@@ -31,8 +31,8 @@ CMD ["npm", "run", "dev"]
 
 # Build stage
 FROM base AS builder
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 COPY . .
 
 # Build the application

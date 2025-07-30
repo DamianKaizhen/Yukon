@@ -1,0 +1,76 @@
+{
+  "name": "cabinet-quoting-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive testing suite for Cabinet Quoting System",
+  "private": true,
+  "scripts": {
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:backend": "jest --testPathPattern=backend",
+    "test:frontend": "jest --testPathPattern=frontend",
+    "test:admin": "jest --testPathPattern=admin-interface",
+    "test:quote-engine": "jest --testPathPattern=quote-engine",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "test:coverage": "jest --coverage --coverageReporters=html --coverageReporters=text",
+    "test:performance": "artillery run performance/load-tests.yml",
+    "test:security": "npm run test:security:zap",
+    "test:security:zap": "echo 'Security tests require OWASP ZAP to be running'",
+    "test:all": "npm run test && npm run test:e2e && npm run test:performance",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "setup": "npm install && cypress install"
+  },
+  "dependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "supertest": "^6.3.3",
+    "cypress": "^13.6.0",
+    "artillery": "^2.0.3",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.8",
+    "@types/supertest": "^6.0.2",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "eslint": "^8.54.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/utils/jest.setup.ts"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.{ts,tsx,js,jsx}",
+      "**/*.test.{ts,tsx,js,jsx}"
+    ],
+    "collectCoverageFrom": [
+      "../**/src/**/*.{ts,tsx,js,jsx}",
+      "!../**/src/**/*.d.ts",
+      "!../**/src/**/*.stories.{ts,tsx,js,jsx}",
+      "!../**/dist/**",
+      "!../**/node_modules/**"
+    ],
+    "coverageDirectory": "./reports/coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "moduleNameMapping": {
+      "^@/(.*)$": "<rootDir>/../$1/src/$1"
+    }
+  },
+  "main": "fixes-validation.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

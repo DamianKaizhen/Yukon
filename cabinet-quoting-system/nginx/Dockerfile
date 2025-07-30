@@ -9,23 +9,21 @@ RUN apk update && \
         ca-certificates && \
     rm -rf /var/cache/apk/*
 
-# Create non-root user for nginx
-RUN addgroup -g 101 -S nginx-custom && \
-    adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx-custom -g nginx-custom nginx-custom
+# Create non-root user for nginx (use existing nginx group)
+RUN adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx nginx-custom
 
 # Remove default nginx config
 RUN rm /etc/nginx/conf.d/default.conf
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /var/cache/nginx /var/log/nginx /var/run && \
-    chown -R nginx-custom:nginx-custom /var/cache/nginx /var/log/nginx /var/run
+    chown -R nginx-custom:nginx /var/cache/nginx /var/log/nginx /var/run
 
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY conf.d/ /etc/nginx/conf.d/
 
 # Set proper permissions
-RUN chown -R nginx-custom:nginx-custom /etc/nginx
+RUN chown -R nginx-custom:nginx /etc/nginx
 
 # Switch to non-root user
 USER nginx-custom

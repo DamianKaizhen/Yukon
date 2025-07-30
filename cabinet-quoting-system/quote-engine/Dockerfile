@@ -1,24 +1,14 @@
-# Quote Engine Dockerfile - PDF Generation Service
-# Multi-stage build following 2025 best practices
+# Quote Engine Dockerfile - Complete Quote Processing Service
+# Multi-stage build for production optimization
 
-# Base Node.js image with security updates and Puppeteer dependencies
+# Base Node.js image with security updates
 FROM node:20-alpine AS base
 RUN apk update && apk upgrade && \
     apk add --no-cache \
         curl \
         ca-certificates \
-        chromium \
-        nss \
-        freetype \
-        freetype-dev \
-        harfbuzz \
-        ca-certificates \
-        ttf-freefont && \
-    rm -rf /var/cache/apk/*
-
-# Tell Puppeteer to skip installing Chromium. We'll be using the installed package.
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+        dumb-init \
+        && rm -rf /var/cache/apk/*
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -29,50 +19,61 @@ WORKDIR /app
 # Dependencies stage
 FROM base AS deps
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Development stage
 FROM base AS development
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
-RUN mkdir -p pdf-storage && chown quote-engine:nodejs pdf-storage
+RUN mkdir -p storage/pdfs storage/temp logs assets && \
+    chown quote-engine:nodejs storage logs assets
 USER quote-engine
-EXPOSE 3003 9230
+EXPOSE 3003
 ENV PORT 3003
 CMD ["npm", "run", "dev"]
 
 # Build stage (for TypeScript compilation)
 FROM base AS builder
-COPY package.json package-lock.json* ./
-RUN npm ci
-COPY . .
+COPY package.json package-lock.json* tsconfig.json ./
+RUN npm ci --include=dev
+COPY src/ ./src/
 RUN npm run build
 
 # Production stage
 FROM base AS production
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
+ENV PORT=3003
 
 # Copy production dependencies and built application
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./package.json
+COPY package.json ./
 
-# Copy template files for PDF generation
-COPY --from=builder /app/templates ./templates
+# Create necessary directories with proper permissions
+RUN mkdir -p storage/pdfs storage/temp logs assets && \
+    chown -R quote-engine:nodejs storage logs assets
 
-# Create PDF storage directory with proper permissions
-RUN mkdir -p pdf-storage && \
-    chown -R quote-engine:nodejs /app
+# Copy static assets
+COPY assets/ ./assets/
 
+# Copy environment example
+COPY .env.example ./
+
+# Switch to non-root user
 USER quote-engine
 
+# Expose port
 EXPOSE 3003
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3003/health || exit 1
 
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
 CMD ["node", "dist/index.js"]

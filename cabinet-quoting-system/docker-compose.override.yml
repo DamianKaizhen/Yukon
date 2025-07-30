@@ -25,6 +25,7 @@ services:
     cap_drop: []
     cap_add: []
     tmpfs: []
+    user: "0:0"  # Run as root in development to avoid permission issues
 
   # Admin Interface Development Configuration
   admin-interface:
@@ -48,6 +49,7 @@ services:
     cap_drop: []
     cap_add: []
     tmpfs: []
+    user: "0:0"  # Run as root in development to avoid permission issues
 
   # Backend Development Configuration
   backend:
@@ -110,7 +112,7 @@ services:
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data:rw
       - ./database/init:/docker-entrypoint-initdb.d:ro
-      - ./database/dev-seed:/docker-entrypoint-initdb.d/dev-data:ro
+      # - ./database/dev-seed:/docker-entrypoint-initdb.d/dev-data:ro  # Commented out - directory doesn't exist
     # Remove security restrictions for development
     security_opt: []
     cap_drop: []

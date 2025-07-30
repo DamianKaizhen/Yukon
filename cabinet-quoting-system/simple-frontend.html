@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cabinet Quoting System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
+        .header { background: #1e293b; color: white; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .hero { background: white; padding: 3rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; margin-bottom: 2rem; }
+        .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; color: #1e293b; }
+        .hero p { font-size: 1.2rem; color: #64748b; margin-bottom: 2rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card h3 { color: #1e293b; margin-bottom: 1rem; }
+        .btn { display: inline-block; padding: 0.8rem 2rem; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 500; transition: background 0.2s; }
+        .btn:hover { background: #2563eb; }
+        .status { padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.875rem; font-weight: 500; display: inline-block; }
+        .status.online { background: #10b981; color: white; }
+        .status.offline { background: #ef4444; color: white; }
+        .status.loading { background: #f59e0b; color: white; }
+        .links { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>🏠 Cabinet Quoting System</h2>
+    </div>
+    
+    <div class="container">
+        <div class="hero">
+            <h1>Welcome to Cabinet Quoting System</h1>
+            <p>Professional cabinet quoting and management solution</p>
+            <div class="links">
+                <a href="/catalog" class="btn">Browse Catalog</a>
+                <a href="/quote-builder" class="btn">Build Quote</a>
+                <a href="http://localhost:3001" class="btn">Admin Login</a>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>📊 System Status</h3>
+                <p style="margin-bottom: 1rem;">Current service availability:</p>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div>Database: <span class="status online">Online</span></div>
+                    <div>Backend API: <span class="status online">Online</span></div>
+                    <div>Frontend: <span class="status online">Loading</span></div>
+                    <div>Admin Panel: <span class="status loading">Starting</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🚀 Quick Links</h3>
+                <ul style="list-style: none; line-height: 2;">
+                    <li>📁 <a href="/catalog">Product Catalog</a></li>
+                    <li>🛒 <a href="/cart">Shopping Cart</a></li>
+                    <li>📋 <a href="/quotes">My Quotes</a></li>
+                    <li>👤 <a href="/login">Customer Login</a></li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>🔧 Development</h3>
+                <ul style="list-style: none; line-height: 2;">
+                    <li>🔗 <a href="http://localhost:3002/health">API Health Check</a></li>
+                    <li>📚 <a href="http://localhost:3002/docs">API Documentation</a></li>
+                    <li>🗄️ Database: <code>localhost:5432</code></li>
+                    <li>💻 <a href="https://github.com/DamianKaizhen/Yukon">GitHub Repository</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card" style="text-align: center;">
+            <h3>ℹ️ System Information</h3>
+            <p style="margin: 1rem 0;">The Cabinet Quoting System is currently being optimized. Some features may be temporarily unavailable.</p>
+            <p>For immediate access, use the direct service links above.</p>
+        </div>
+    </div>
+
+    <script>
+        // Simple status checker
+        fetch('http://localhost:3002/health')
+            .then(r => r.json())
+            .then(data => console.log('Backend API:', data))
+            .catch(e => console.error('Backend API Error:', e));
+    </script>
+</body>
+</html>

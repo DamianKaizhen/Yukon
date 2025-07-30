@@ -1,0 +1,237 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm-up"
+    # Ramp-up phase
+    - duration: 300
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp-up"
+    # Sustained load phase
+    - duration: 600
+      arrivalRate: 50
+      name: "Sustained load"
+    # Peak load phase
+    - duration: 300
+      arrivalRate: 100
+      name: "Peak load"
+    # Cool-down phase
+    - duration: 120
+      arrivalRate: 10
+      name: "Cool-down"
+  processor: "./performance/scenarios.js"
+  payload:
+    path: "./performance/test-data.csv"
+    fields:
+      - "customerName"
+      - "customerEmail"
+      - "projectName"
+      - "phone"
+
+scenarios:
+  # Customer Registration and Authentication
+  - name: "Customer Registration Flow"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/v1/auth/register"
+          json:
+            name: "{{ customerName }}"
+            email: "{{ customerEmail }}"
+            password: "TestPass123!"
+            phone: "{{ phone }}"
+            companyName: "Test Company"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+            - json: "$.data.user.id"
+              as: "customerId"
+          expect:
+            - statusCode: 201
+            - hasProperty: "data.token"
+
+  # Customer Login
+  - name: "Customer Login Flow"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "existing@example.com"
+            password: "TestPass123!"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+
+  # Product Catalog Browsing
+  - name: "Browse Product Catalog"
+    weight: 25
+    flow:
+      - get:
+          url: "/api/v1/products"
+          qs:
+            page: "{{ $randomInt(1, 5) }}"
+            limit: "{{ $randomInt(10, 50) }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data.products"
+
+      - get:
+          url: "/api/v1/products/categories"
+          expect:
+            - statusCode: 200
+
+      - get:
+          url: "/api/v1/products/featured"
+          expect:
+            - statusCode: 200
+
+  # Product Search
+  - name: "Product Search"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/v1/products/search"
+          qs:
+            q: "{{ $randomString() }}"
+          expect:
+            - statusCode: 200
+
+      - get:
+          url: "/api/v1/products"
+          qs:
+            category: "Kitchen Cabinets"
+            sortBy: "price"
+            sortOrder: "asc"
+          expect:
+            - statusCode: 200
+
+  # Quote Creation and Management
+  - name: "Quote Management Flow"
+    weight: 15
+    flow:
+      # Login first
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "existing@example.com"
+            password: "TestPass123!"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+
+      # Create quote
+      - post:
+          url: "/api/v1/quotes"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            customerName: "{{ customerName }}"
+            customerEmail: "{{ customerEmail }}"
+            customerPhone: "{{ phone }}"
+            projectName: "{{ projectName }}"
+            items:
+              - productId: "{{ $randomInt(1, 10) }}"
+                quantity: "{{ $randomInt(1, 5) }}"
+                specifications:
+                  width: "{{ $randomInt(12, 48) }}"
+                  height: "{{ $randomInt(30, 84) }}"
+                  depth: "{{ $randomInt(12, 24) }}"
+          capture:
+            - json: "$.data.quote.id"
+              as: "quoteId"
+          expect:
+            - statusCode: 201
+
+      # Get quote details
+      - get:
+          url: "/api/v1/quotes/{{ quoteId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+      # Update quote
+      - put:
+          url: "/api/v1/quotes/{{ quoteId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            projectName: "Updated {{ projectName }}"
+          expect:
+            - statusCode: 200
+
+  # PDF Generation Load Test
+  - name: "PDF Generation"
+    weight: 5
+    flow:
+      # Login and create quote first
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "existing@example.com"
+            password: "TestPass123!"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+
+      - post:
+          url: "/api/v1/quotes"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            customerName: "{{ customerName }}"
+            customerEmail: "{{ customerEmail }}"
+            projectName: "{{ projectName }}"
+            items:
+              - productId: 1
+                quantity: 2
+                specifications:
+                  width: 36
+                  height: 84
+                  depth: 24
+          capture:
+            - json: "$.data.quote.id"
+              as: "quoteId"
+
+      # Finalize quote
+      - patch:
+          url: "/api/v1/quotes/{{ quoteId }}/finalize"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Generate PDF (hitting quote engine)
+      - post:
+          url: "http://localhost:3003/api/v1/quotes/{{ quoteId }}/pdf"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data.pdfUrl"
+
+# Performance thresholds and assertions
+expect:
+  # Response time expectations
+  - metric: "http.response_time.p95"
+    threshold: 2000  # 95% of requests should respond within 2 seconds
+  - metric: "http.response_time.p99"
+    threshold: 5000  # 99% of requests should respond within 5 seconds
+  
+  # Error rate expectations
+  - metric: "http.codes.200"
+    threshold: "rate > 0.95"  # 95% success rate
+  - metric: "http.codes.4xx"
+    threshold: "rate < 0.05"   # Less than 5% client errors
+  - metric: "http.codes.5xx"
+    threshold: "rate < 0.01"   # Less than 1% server errors
+
+  # Throughput expectations
+  - metric: "http.requests"
+    threshold: "count > 10000"  # Minimum 10,000 requests during test
+
+  # PDF generation specific
+  - metric: "pdf_generation_time"
+    threshold: "p95 < 10000"  # 95% of PDFs generated within 10 seconds

@@ -1,0 +1,2 @@
+# Python requirements for Cabinet Quoting System database scripts
+psycopg2-binary>=2.9.5
